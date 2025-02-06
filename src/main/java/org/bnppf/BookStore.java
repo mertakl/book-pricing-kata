@@ -2,9 +2,9 @@ package org.bnppf;
 
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class BookStore {
     private static final int BOOK_PRICE = 50;
@@ -13,10 +13,12 @@ public class BookStore {
     );
 
     public double calculatePrice(List<String> books) {
-        Map<String, Integer> bookCounts = new HashMap<>();
-        for (String book : books) {
-            bookCounts.put(book, bookCounts.getOrDefault(book, 0) + 1);
-        }
+        // Count the frequency of each unique book
+        Map<String, Integer> bookCounts = books.stream()
+                .collect(Collectors.groupingBy(
+                        book -> book,
+                        Collectors.summingInt(book -> 1)
+                ));
 
         // Convert the book frequencies into a list of counts
         List<Integer> bookFrequencies = new ArrayList<>(bookCounts.values());
@@ -30,32 +32,59 @@ public class BookStore {
             return 0;
         }
 
-        double minPrice = Double.MAX_VALUE;
+        return calculateBestPrice(bookCounts);
+    }
 
-        // Group books from size 5 down to 2
-        for (int setSize = 5; setSize >= 2; setSize--) {
-            List<Integer> newBookCounts = new ArrayList<>(bookCounts);
-            int actualSize = 0;
+    private double calculateBestPrice(List<Integer> bookCounts) {
+        double minPrice = calculateIndividualBookPrice(bookCounts);
 
-            // Reduce the count for up to 'setSize' unique books
-            for (int i = 0; i < newBookCounts.size(); i++) {
-                if (newBookCounts.get(i) > 0) {
-                    newBookCounts.set(i, newBookCounts.get(i) - 1);
-                    actualSize++;
-                }
-                if (actualSize == setSize) break;
-            }
+        // Try different set sizes for discount
+        for (int setSize = Math.min(5, getTotalUniqueBooks(bookCounts)); setSize >= 2; setSize--) {
+            List<Integer> discountedBookCounts = applyDiscountSet(bookCounts, setSize);
 
-            if (actualSize == setSize) {
-                double discount = DISCOUNTS.getOrDefault(setSize, 0.0);
-                double price = (setSize * BOOK_PRICE) * (1 - discount);
-                minPrice = Math.min(minPrice, price + findOptimalPrice(newBookCounts));
+            if (discountedBookCounts != null) {
+                double discountedPrice = calculateDiscountedPrice(setSize)
+                        + findOptimalPrice(discountedBookCounts);
+                minPrice = Math.min(minPrice, discountedPrice);
             }
         }
 
-        // If no grouping applies, just sum the individual book prices
-        int totalBooks = bookCounts.stream().mapToInt(Integer::intValue).sum();
-        return Math.min(minPrice, totalBooks * BOOK_PRICE);
+        return minPrice;
+    }
+
+    private List<Integer> applyDiscountSet(List<Integer> bookCounts, int setSize) {
+        List<Integer> newBookCounts = new ArrayList<>(bookCounts);
+        int uniqueBooksInSet = 0;
+
+        for (int i = 0; i < newBookCounts.size(); i++) {
+            if (newBookCounts.get(i) > 0) {
+                newBookCounts.set(i, newBookCounts.get(i) - 1);
+                uniqueBooksInSet++;
+            }
+
+            if (uniqueBooksInSet == setSize) {
+                return newBookCounts;
+            }
+        }
+
+        return null;
+    }
+
+    private double calculateDiscountedPrice(int setSize) {
+        double discount = DISCOUNTS.getOrDefault(setSize, 0.0);
+        return (setSize * BOOK_PRICE) * (1 - discount);
+    }
+
+    private int calculateIndividualBookPrice(List<Integer> bookCounts) {
+        return bookCounts.stream()
+                .mapToInt(Integer::intValue)
+                .sum() * BOOK_PRICE;
+    }
+
+    private int getTotalUniqueBooks(List<Integer> bookCounts) {
+        return (int) bookCounts.stream()
+                .filter(count -> count > 0)
+                .count();
     }
 }
 

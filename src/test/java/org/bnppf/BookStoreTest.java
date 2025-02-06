@@ -1,6 +1,7 @@
 package org.bnppf;
 
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -13,7 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 
 class BookStoreTest {
-    private final BookStore bookStore = new BookStore();
+    private BookStore bookStore;
+
+    @BeforeEach
+    void setUp() {
+        bookStore = new BookStore();
+    }
+
 
     @Test
     void duplicateBooksShouldNotGetDiscount() {
@@ -52,7 +59,7 @@ class BookStoreTest {
     }
 
     @Test
-    void testComplexBasket() {
+    void complexBasketShouldCalculatePriceCorrectly() {
         List<String> books = Arrays.asList(
                 "Clean Code", "Clean Code",
                 "Clean Coder", "Clean Coder",
