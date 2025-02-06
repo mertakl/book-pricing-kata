@@ -1,27 +1,27 @@
 package org.bnppf;
 
-import java.util.Arrays;
+import java.util.*;
 
 public class BookStore {
-    private static final double BOOK_PRICE = 50.0;
-    private static final double TWO_BOOKS_DISCOUNT = 0.05;
-    private static final double THREE_BOOKS_DISCOUNT = 0.10;
+    Map<Integer, Double> discounts = Map.of(
+            2, 0.05, 3, 0.10, 4, 0.20, 5, 0.25
+    );
 
-    public double calculatePrice(int[] books) {
-        if (books == null || books.length == 0) {
-            return 0.0;
+    public double calculatePrice(List<String> books) {
+        double totalPrice = 0;
+        List<String> remainingBooks = new ArrayList<>(books);
+
+        while (!remainingBooks.isEmpty()) {
+            Set<String> uniqueBooks = new HashSet<>(remainingBooks);
+            int differentBooks = uniqueBooks.size();
+
+            double discount = discounts.getOrDefault(differentBooks, 0.0);
+            totalPrice += (differentBooks * 50) * (1 - discount);
+
+            uniqueBooks.forEach(remainingBooks::remove);
         }
 
-        // Count unique books
-        long uniqueBooks = Arrays.stream(books).distinct().count();
-
-        if (uniqueBooks == 3) {
-            return 3 * BOOK_PRICE * (1 - THREE_BOOKS_DISCOUNT);
-        } else if (uniqueBooks == 2) {
-            return 2 * BOOK_PRICE * (1 - TWO_BOOKS_DISCOUNT);
-        }
-
-        return books.length * BOOK_PRICE;
+        return totalPrice;
     }
 
 }
